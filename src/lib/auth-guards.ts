@@ -35,7 +35,8 @@ export async function requireUser(): Promise<SessionUser> {
 /** Require at least `min` role (default STAFF). Redirects if not permitted. */
 export async function requireRole(min: UserRole = "STAFF"): Promise<SessionUser> {
   const user = await requireUser();
-  if (RANK[user.role] < RANK[min]) redirect("/admin?denied=1");
+  // Default-deny: an unrecognised role string ranks 0, never above `min`.
+  if ((RANK[user.role] ?? 0) < RANK[min]) redirect("/admin?denied=1");
   return user;
 }
 
@@ -48,7 +49,8 @@ export async function requireApiUser(): Promise<SessionUser> {
 
 export async function requireApiRole(min: UserRole = "STAFF"): Promise<SessionUser> {
   const user = await requireApiUser();
-  if (RANK[user.role] < RANK[min]) {
+  // Default-deny: an unrecognised role string ranks 0, never above `min`.
+  if ((RANK[user.role] ?? 0) < RANK[min]) {
     throw new HttpError(403, "FORBIDDEN", "Ei käyttöoikeutta.");
   }
   return user;

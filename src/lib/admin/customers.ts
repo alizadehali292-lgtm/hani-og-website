@@ -1,20 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { customerSearchOR } from "./customer-search";
 
 export async function listCustomers(opts: { q?: string; page?: number; perPage?: number }) {
   const perPage = Math.min(opts.perPage ?? 40, 100);
   const page = Math.max(1, opts.page ?? 1);
   const q = opts.q?.trim();
 
-  const where = q
-    ? {
-        OR: [
-          { firstName: { contains: q } },
-          { lastName: { contains: q } },
-          { email: { contains: q } },
-          { phone: { contains: q } },
-        ],
-      }
-    : {};
+  const where = q ? { OR: customerSearchOR(q) } : {};
 
   const [rows, total] = await Promise.all([
     prisma.customer.findMany({

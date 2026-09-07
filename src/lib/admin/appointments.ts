@@ -7,6 +7,7 @@ import {
   todayLocalDateStr,
 } from "@/lib/time";
 import { BOOKING_STATUSES, type BookingStatus } from "@/lib/types";
+import { customerSearchOR } from "./customer-search";
 
 export type AppointmentListFilters = {
   from?: string; // YYYY-MM-DD (salon-local, inclusive)
@@ -53,15 +54,7 @@ export async function listAppointments(filters: AppointmentListFilters) {
   if (filters.status && filters.status !== "ALL") where.status = filters.status;
   if (filters.staffId) where.staffId = filters.staffId;
   if (filters.q?.trim()) {
-    const q = filters.q.trim();
-    where.customer = {
-      OR: [
-        { firstName: { contains: q } },
-        { lastName: { contains: q } },
-        { email: { contains: q } },
-        { phone: { contains: q } },
-      ],
-    };
+    where.customer = { OR: customerSearchOR(filters.q.trim()) };
   }
 
   const [rows, total] = await Promise.all([

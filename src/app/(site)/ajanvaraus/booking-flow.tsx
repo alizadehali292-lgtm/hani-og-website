@@ -346,9 +346,10 @@ export function BookingFlow({ policy }: { policy: Policy }) {
                   staffId: staffId === ANY ? undefined : staffId,
                   date,
                   time,
-                  customer,
+                  // Consent belongs inside `customer` — that's where
+                  // createBookingSchema / customerInputSchema read it.
+                  customer: { ...customer, marketingConsent: consent },
                   note: note.trim() || undefined,
-                  marketingConsent: consent,
                 });
                 router.push(`/varaus/${res.publicId}?t=${encodeURIComponent(res.manageToken)}&new=1`);
               } catch (e) {

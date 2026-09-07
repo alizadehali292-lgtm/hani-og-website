@@ -17,14 +17,18 @@ const STATUS_LABEL: Record<string, string> = {
   SKIPPED: "Ohitettu",
 };
 
+// Keys must match NOTIFICATION_TYPES in src/lib/types.ts — the values actually
+// written to Notification.type.
 const TYPE_LABEL: Record<string, string> = {
   BOOKING_CONFIRMATION: "Varausvahvistus",
-  BOOKING_NOTIFY_OWNER: "Ilmoitus omistajalle",
   BOOKING_CANCELLED: "Peruutus",
   BOOKING_RESCHEDULED: "Ajan siirto",
-  BOOKING_REMINDER_24H: "Muistutus (24 h)",
-  BOOKING_REMINDER_2H: "Muistutus (2 h)",
-  PASSWORD_RESET: "Salasanan palautus",
+  OWNER_NEW_BOOKING: "Uusi varaus (omistajalle)",
+  OWNER_CANCELLED: "Peruutus (omistajalle)",
+  OWNER_RESCHEDULED: "Ajan siirto (omistajalle)",
+  REMINDER_24H: "Muistutus (24 h)",
+  REMINDER_2H: "Muistutus (2 h)",
+  REVIEW_REQUEST: "Arvostelupyyntö",
 };
 
 export default async function NotificationsPage({

@@ -1,0 +1,25 @@
+name: notifications-cron
+
+# Drains PENDING Notification rows every 15 minutes: owner "new booking" alerts
+# plus the 24 h / 2 h reminders. The endpoint is idempotent (drains by
+# scheduledFor <= now), so the few-minute jitter GitHub sometimes adds to
+# scheduled runs is harmless.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: notifications-cron
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: POST /api/cron/notifications
+        run: |
+          curl -fsS --max-time 120 -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.SITE_URL }}/api/cron/notifications"

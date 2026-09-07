@@ -29,8 +29,14 @@ function slugify(input: string): string {
 }
 
 // ── Service catalogue ───────────────────────────────────────────────────────────
-// [nameFi, priceEuros | null (=> "by agreement"), durationMinutes, onlineBookable?]
-type Row = [string, number | null, number, boolean?];
+// Mirrors the salon's live Timma page (timma.fi/yritys/mano) 1:1 — every
+// category, service name and price is copied from there. Prices marked "alk."
+// on Timma are passed as `from: true` (=> priceType FROM, rendered "alk. X €").
+// Durations are professional estimates — Timma does not publish them — and the
+// owner adjusts them from the admin.
+//
+// [nameFi, priceEuros | null (=> "by agreement"), durationMinutes, onlineBookable?, from?]
+type Row = [string, number | null, number, boolean?, boolean?];
 
 const CATALOGUE: { category: string; categoryEn: string; blurbFi: string; items: Row[] }[] = [
   {
@@ -38,51 +44,30 @@ const CATALOGUE: { category: string; categoryEn: string; blurbFi: string; items:
     categoryEn: "Haircuts",
     blurbFi: "Tyylillesi sopivat leikkaukset kaikenpituisille hiuksille. Luodaan uusi ilme.",
     items: [
-      ["Kampaamoleikkaus, lyhyet", 45, 45, true],
-      ["Kampaamoleikkaus, puolipitkät", 50, 45, true],
-      ["Kampaamoleikkaus, pitkät", 65, 60, true],
-      ["Kampaamoleikkaus, extrapitkät", 78, 60, true],
-      ["Mallinmuutosleikkaus, lyhyet", 50, 60, true],
-      ["Mallinmuutosleikkaus, puolipitkät", 60, 60, true],
-      ["Mallinmuutosleikkaus, pitkät", 70, 75, true],
-      ["Mallinmuutosleikkaus, extrapitkät", 80, 75, true],
-      ["Kihara- ja afrohiusten leikkaus, lyhyet", 50, 60, true],
-      ["Kihara- ja afrohiusten leikkaus, puolipitkät", 60, 60, true],
-      ["Kihara- ja afrohiusten leikkaus, pitkät", 70, 75, true],
-      ["Kihara- ja afrohiusten leikkaus, extrapitkät", 80, 75, true],
-      ["Hiusten tasaus", 30, 30, true],
-      ["Parturileikkaus", 30, 30, true],
+      ["Kampaamoleikkaus lyhyet", 41, 45, true, true],
+      ["Kampaamoleikkaus puolipitkät", 45, 45, true, true],
+      ["Kampaamoleikkaus pitkät", 59, 60, true, true],
+      ["Kampaamoleikkaus extrapitkät", 70, 60, true, true],
+      ["Mallinmuutosleikkaus lyhyet", 45, 60, true, true],
+      ["Mallinmuutosleikkaus puolipitkät", 54, 60, true, true],
+      ["Mallinmuutosleikkaus pitkät", 63, 75, true, true],
+      ["Mallinmuutosleikkaus extrapitkät", 72, 75, true, true],
+      ["Kihara- ja afrohiusten leikkaus lyhyet", 50, 60, true],
+      ["Kihara- ja afrohiusten leikkaus puolipitkät", 60, 60, true],
+      ["Kihara- ja afrohiusten leikkaus pitkät", 70, 75, true],
+      ["Kihara- ja afrohiusten leikkaus extrapitkät", 80, 75, true],
+      ["Hiusten tasaus", 27, 30, true, true],
+      ["Lasten hiustenleikkaus alle 7v lyhyet hiukset", 23, 30, true, true],
+      ["Lasten hiustenleikkaus alle 7v puolipitkät hiukset", 32, 30, true, true],
+      ["Lasten hiustenleikkaus alle 7v pitkät hiukset", 41, 45, true, true],
+      ["Lasten hiustenleikkaus alle 7v extrapitkät hiukset", 50, 45, true, true],
+      ["Lasten mallinmuutosleikkaus lyhyet hiukset, alle 7v", 23, 30, true, true],
+      ["Lasten mallinmuutosleikkaus puolipitkät hiukset, alle 7v", 27, 45, true, true],
+      ["Lasten mallinmuutosleikkaus pitkät hiukset, alle 7v", 36, 45, true, true],
+      ["Lasten mallinmuutosleikkaus extrapitkät hiukset, alle 7v", 45, 45, true, true],
       ["Koneajo", 20, 20, true],
-      ["Lasten hiustenleikkaus (alle 7 v), lyhyet", 25, 30, true],
-      ["Lasten hiustenleikkaus (alle 7 v), puolipitkät", 35, 30, true],
-      ["Lasten hiustenleikkaus (alle 7 v), pitkät", 45, 45, true],
-      ["Lasten hiustenleikkaus (alle 7 v), extrapitkät", 55, 45, true],
-      ["Lasten mallinmuutosleikkaus (alle 7 v), puolipitkät", 30, 45],
-      ["Lasten mallinmuutosleikkaus (alle 7 v), pitkät", 40, 45],
-      ["Lasten mallinmuutosleikkaus (alle 7 v), extrapitkät", 50, 45],
+      ["Parturileikkaus", 30, 30, true],
       ["Hiustenpesu parturileikkauksen yhteydessä", 5, 10],
-    ],
-  },
-  {
-    category: "Värjäykset",
-    categoryEn: "Colouring",
-    blurbFi: "Sävyt ja vaalennukset hiustesi kuntoa kunnioittaen.",
-    items: [
-      ["Väri ja leikkaus, lyhyet", 100, 120, true],
-      ["Väri ja leikkaus, keskipitkät", 119, 135, true],
-      ["Väri ja leikkaus, pitkät", 129, 150, true],
-      ["Väri ja leikkaus, extrapitkät", 149, 165, true],
-      ["Väri, lyhyet", 90, 90, true],
-      ["Väri, keskipitkät", 99, 105, true],
-      ["Väri, pitkät", 115, 120, true],
-      ["Väri, extrapitkät", 129, 135, true],
-      ["Tyviväri", 75, 75, true],
-      ["Tyviväri ja leikkaus", 102, 105, true],
-      ["Tyvivaalennus", 75, 90, true],
-      ["Tyvivaalennus ja leikkaus", 150, 135, true],
-      ["Vaalennus ja sävytys", 100, 150, true],
-      ["Sävytys", 35, 45, true],
-      ["Sävytys sis. pesu ja föönaus", 70, 60, true],
     ],
   },
   {
@@ -90,51 +75,24 @@ const CATALOGUE: { category: string; categoryEn: string; blurbFi: string; items:
     categoryEn: "Highlights & balayage",
     blurbFi: "Moniväriraidat ja balayage tuovat syvyyttä ja eloa hiuksiisi.",
     items: [
-      ["Moniväri ja leikkaus, lyhyet", 120, 150, true],
-      ["Moniväri ja leikkaus, keskipitkät", 140, 165, true],
-      ["Moniväri ja leikkaus, pitkät", 158, 180, true],
-      ["Moniväri ja leikkaus, extrapitkät", 174, 195, true],
-      ["Moniväri, lyhyet", 100, 120, true],
-      // TODO(content): price missing — falls back to "sopimuksen mukaan". Confirm the
-      // real "Moniväri, keskipitkät" price against the salon's Timma hinnasto.
-      ["Moniväri, keskipitkät", null, 135, true],
-      ["Moniväri, pitkät", 105, 150, true],
-      ["Moniväri, extrapitkät", 110, 165, true],
-      ["Raidat ja leikkaus, lyhyet", 115, 150, true],
-      ["Raidat ja leikkaus, keskipitkät", 138, 165, true],
-      ["Raidat ja leikkaus, pitkät", 153, 180, true],
-      ["Raidat ja leikkaus, extrapitkät", 172, 195, true],
-      ["Raidat, lyhyet", 95, 120, true],
-      ["Raidat, keskipitkät", 119, 135, true],
-      ["Raidat, pitkät", 129, 150, true],
-      ["Raidat, extrapitkät", 151, 165, true],
-      ["Balayage ja leikkaus, lyhyet", 160, 180, true],
-      ["Balayage ja leikkaus, keskipitkät", 180, 210, true],
-      ["Balayage ja leikkaus, extrapitkät", 250, 240, true],
-    ],
-  },
-  {
-    category: "Permanentit & pidennykset",
-    categoryEn: "Perms & extensions",
-    blurbFi: "Kiharat, volyymi ja pituus — kestävästi toteutettuna.",
-    items: [
-      ["Permanentti, lyhyet", 95, 105, true],
-      ["Permanentti, keskipitkät", 130, 120, true],
-      ["Permanentti, pitkät", 150, 150, true],
-      ["Permanentti ja leikkaus, lyhyet", 105, 135, true],
-      ["Permanentti ja leikkaus, keskipitkät", 129, 150, true],
-      ["Permanentti ja leikkaus, pitkät", 130, 165, true],
-      ["Permanentti ja leikkaus, extrapitkät", 170, 180, true],
-      ["Osapermanentti", 85, 90, true],
-      ["Osapermanentti ja leikkaus", 130, 120, true],
-      ["Afro- ja spiraalikiharat", 70, 120, true],
-      ["Hiustenpidennyskonsultaatio", null, 20, true],
-      ["Hiustenpidennys (teippi)", 75, 120, true],
-      ["Hiustenpidennys (sinetti)", 75, 120, true],
-      ["Hiustenpidennysten värjäys", 30, 45],
-      ["Teippipidennysten poisto", 50, 60],
-      ["Sinettipidennysten poisto", 50, 60],
-      ["Ommelpidennysten poisto", 25, 45],
+      ["Moniväri ja leikkaus (lyhyet)", 104, 150, true, true],
+      ["Moniväri ja leikkaus (keskipitkät)", 116, 165, true, true],
+      ["Moniväri ja leikkaus (pitkät)", 134, 180, true, true],
+      ["Moniväri ja leikkaus (extrapitkät)", 151, 195, true, true],
+      ["Raidat ja leikkaus (lyhyet)", 104, 150, true, true],
+      ["Raidat ja leikkaus (keskipitkät)", 124, 165, true, true],
+      ["Raidat ja leikkaus (pitkät)", 138, 180, true, true],
+      ["Raidat ja leikkaus (extrapitkät)", 155, 195, true, true],
+      ["Moniväri (lyhyet)", 88, 120, true, true],
+      ["Moniväri (pitkät)", 95, 150, true, true],
+      ["Moniväri (extrapitkät)", 99, 165, true, true],
+      ["Raidat (lyhyet)", 86, 120, true, true],
+      ["Raidat (keskipitkät)", 107, 135, true, true],
+      ["Raidat (pitkät)", 116, 150, true, true],
+      ["Raidat (extrapitkät)", 136, 165, true, true],
+      ["Balayage ja leikkaus lyhyet hiukset", 144, 180, true, true],
+      ["Balayage ja leikkaus keskipitkät hiukset", 162, 210, true, true],
+      ["Balayage ja leikkaus extra pitkät hiukset", 225, 240, true, true],
     ],
   },
   {
@@ -142,23 +100,69 @@ const CATALOGUE: { category: string; categoryEn: string; blurbFi: string; items:
     categoryEn: "Hairdos & make-up",
     blurbFi: "Juhliin, häihin ja arkeen — viimeistelty lopputulos.",
     items: [
-      ["Hiustenpesu ja föönaus, lyhyet", 40, 30, true],
-      ["Hiustenpesu ja föönaus, keskipitkät", 42, 40, true],
-      ["Hiustenpesu ja föönaus, pitkät", 45, 45, true],
-      ["Hiustenpesu ja föönaus, extrapitkät", 48, 45, true],
-      ["Pikakampaus", 35, 30, true],
       ["Kampauksen suunnittelu", 45, 45, true],
+      ["Pikakampaus", 35, 30, true],
       ["Juhlakampaus", 70, 60, true],
-      ["Kiharakampaus", 55, 45, true],
-      ["Nutturakampaus, lyhyet", 60, 45, true],
-      ["Nutturakampaus, keskipitkät", 62, 50, true],
-      ["Nutturakampaus, pitkät", 65, 60, true],
-      ["Nutturakampaus, extrapitkät", 70, 60, true],
+      ["Päivämeikki", 45, 40, true],
       ["Hääkampaus", 130, 90, true],
-      ["Päivämeikki", 40, 40, true],
       ["Juhlameikki", 75, 45, true],
+      ["Hiustenpesu ja föönaus (lyhyet hiukset)", 40, 30, true],
+      ["Hiustenpesu ja föönaus (keskipitkät hiukset)", 42, 40, true],
+      ["Hiustenpesu ja föönaus (pitkät hiukset)", 45, 45, true],
+      ["Hiustenpesu ja föönaus (extrapitkät hiukset)", 48, 45, true],
+      ["Nutturakampaus (lyhyet hiukset)", 60, 45, true],
+      ["Nutturakampaus (keskipitkät hiukset)", 62, 50, true],
+      ["Nutturakampaus (pitkät hiukset)", 65, 60, true],
+      ["Nutturakampaus (extrapitkät hiukset)", 70, 60, true],
+      ["Kiharakampaus", 55, 45, true],
       ["Häämeikki", 120, 60, true],
       ["Meikki ja kampaus (paketti)", 120, 120, true],
+    ],
+  },
+  {
+    category: "Värjäykset",
+    categoryEn: "Colouring",
+    blurbFi: "Sävyt ja vaalennukset hiustesi kuntoa kunnioittaen.",
+    items: [
+      ["Väri ja leikkaus (lyhyet)", 90, 120, true, true],
+      ["Väri ja leikkaus (keskipitkät)", 107, 135, true, true],
+      ["Väri ja leikkaus (pitkät)", 116, 150, true, true],
+      ["Väri ja leikkaus (extrapitkät)", 134, 165, true, true],
+      ["Tyviväri ja leikkaus", 92, 105, true, true],
+      ["Tyviväri", 68, 75, true, true],
+      ["Väri (lyhyet)", 81, 90, true, true],
+      ["Väri (keskipitkät)", 89, 105, true, true],
+      ["Väri (pitkät)", 104, 120, true, true],
+      ["Väri (extrapitkät)", 116, 135, true, true],
+      ["Tyvivaalennus", 68, 90, true, true],
+      ["Tyvivaalennus ja leikkaus", 135, 135, true, true],
+      ["Sävytys", 32, 45, true, true],
+      ["Vaalennus ja sävytys", 90, 150, true, true],
+      ["Sävytys sis. pesu ja föönaus", 70, 60, true],
+      ["Sävytys (vaaleiden raitojen raikastus)", 80, 60, true],
+    ],
+  },
+  {
+    category: "Hiustenpidennykset & permanentit",
+    categoryEn: "Perms & extensions",
+    blurbFi: "Kiharat, volyymi ja pituus — kestävästi toteutettuna.",
+    items: [
+      ["Permanentti ja leikkaus (lyhyet)", 95, 135, true, true],
+      ["Permanentti ja leikkaus (keskipitkät)", 116, 150, true, true],
+      ["Permanentti ja leikkaus (pitkät)", 117, 165, true, true],
+      ["Permanentti ja leikkaus (extrapitkät)", 153, 180, true, true],
+      ["Hiustenpidennys (teippi)", 75, 120, true],
+      ["Permanentti lyhyet hiukset", 86, 105, true, true],
+      ["Permanentti keskipitkät hiukset", 117, 120, true, true],
+      ["Permanentti pitkät hiukset", 135, 150, true, true],
+      ["Osapermanentti", 77, 90, true, true],
+      ["Osapermanentti ja leikkaus", 117, 120, true, true],
+      ["Afro- ja spiraalikiharat", 70, 120, true],
+      ["Hiustenpidennys värjäys", 30, 45, true],
+      ["Teippipidennysten poisto", 50, 60, true],
+      ["Hiustenpidennys (sinetti)", 75, 120, true],
+      ["Sinettipidennysten poisto", 50, 60, true],
+      ["Ommelpidennysten poisto", 25, 45, true],
     ],
   },
   {
@@ -170,49 +174,8 @@ const CATALOGUE: { category: string; categoryEn: string; blurbFi: string; items:
       ["Kulmien värjäys ja muotoilu", 20, 20, true],
       ["Ripsien ja kulmien värjäys ja muotoilu", 35, 35, true],
       ["Kulmien muotoilu", 15, 15, true],
-      ["Kulmien ja ylähuulen lankaus", 10, 15, true],
-      ["Koko kasvojen lankaus", 20, 30, true],
-      ["Koko kasvojen höyläys", 15, 20, true],
+      ["Koko kasvojen lankaus (Threading)", 20, 30, true],
     ],
-  },
-  {
-    category: "Kädet & kynnet",
-    categoryEn: "Hands & nails",
-    blurbFi: "Hoidetut kynnet arkeen ja juhlaan.",
-    items: [
-      ["Geelilakkaus", 40, 45, true],
-      ["Rakennekynnet, buildergeeli", 50, 60, true],
-      ["Akryylikynnet, pitkät", 65, 75, true],
-      ["Akryylikynnet, extrapitkät", 75, 90, true],
-      ["Miesten manikyyri", 30, 30, true],
-    ],
-  },
-  {
-    category: "Hiushoidot",
-    categoryEn: "Hair treatments",
-    blurbFi: "Tehohoidot hiusten kuntoon ja kiiltoon.",
-    items: [
-      ["Hiushoito", 20, 30, true],
-      ["SensiDO Simplex Bonder, lyhyet", 50, 30, true],
-      ["SensiDO Simplex Bonder, keskipitkät", 55, 30, true],
-      ["SensiDO Simplex Bonder, pitkät", 60, 30, true],
-      ["SensiDO Simplex Bonder, extrapitkät", 65, 30, true],
-    ],
-  },
-  {
-    category: "Parta",
-    categoryEn: "Beard",
-    blurbFi: "Parranajo ja muotoilu ammattiotteella.",
-    items: [
-      ["Amerikkalainen parranajo", 35, 30, true],
-      ["Parran siistiminen / koneajo", 15, 20, true],
-    ],
-  },
-  {
-    category: "Päähieronnat",
-    categoryEn: "Head massage",
-    blurbFi: "Rentouttavat intialaiset päähieronnat hyvän olon tueksi.",
-    items: [["Intialainen päähieronta", null, 30, true]],
   },
 ];
 
@@ -381,8 +344,11 @@ async function main() {
   // ── Categories + services ──────────────────────────────────────────────────
   let catOrder = 0;
   let totalServices = 0;
+  const keptCategorySlugs = new Set<string>();
+  const keptServiceSlugs = new Set<string>();
   for (const group of CATALOGUE) {
     const catSlug = slugify(group.category);
+    keptCategorySlugs.add(catSlug);
     const category = await prisma.serviceCategory.upsert({
       where: { slug: catSlug },
       create: {
@@ -397,10 +363,12 @@ async function main() {
     });
 
     let svcOrder = 0;
-    for (const [nameFi, priceEuros, duration, online] of group.items) {
+    for (const [nameFi, priceEuros, duration, online, from] of group.items) {
       const slug = slugify(`${group.category}-${nameFi}`);
-      const priceType = priceEuros == null ? "CONSULTATION" : "FIXED";
+      keptServiceSlugs.add(slug);
+      const priceType = priceEuros == null ? "CONSULTATION" : from ? "FROM" : "FIXED";
       const priceCents = priceEuros == null ? 0 : Math.round(priceEuros * 100);
+      const order = svcOrder++;
       const service = await prisma.service.upsert({
         where: { slug },
         create: {
@@ -414,15 +382,20 @@ async function main() {
           priceType,
           isActive: true,
           isBookableOnline: Boolean(online),
-          displayOrder: svcOrder++,
+          displayOrder: order,
         },
         update: {
+          // Refresh display copy too — slugs ignore punctuation, so a comma/paren
+          // tweak to a name would otherwise never land on an existing row.
+          name: nameFi,
+          nameFi,
           categoryId: category.id,
           durationMinutes: duration,
           priceCents,
           priceType,
+          isActive: true,
           isBookableOnline: Boolean(online),
-          displayOrder: svcOrder,
+          displayOrder: order,
         },
       });
       totalServices++;
@@ -438,6 +411,42 @@ async function main() {
     }
   }
   console.log(`  ${CATALOGUE.length} categories, ${totalServices} services, ${staffRecords.length} staff`);
+
+  // ── Retire catalogue entries no longer offered ─────────────────────────────
+  // Mirrors the stale-staff logic: a service/category that has dropped off the
+  // catalogue (e.g. removed from the salon's Timma page) is deleted when nothing
+  // references it, otherwise deactivated so booking history stays valid.
+  const staleServices = await prisma.service.findMany({
+    where: { slug: { notIn: [...keptServiceSlugs] } },
+    include: { _count: { select: { appointments: true } } },
+  });
+  for (const s of staleServices) {
+    if (s._count.appointments > 0) {
+      await prisma.service.update({
+        where: { id: s.id },
+        data: { isActive: false, isBookableOnline: false },
+      });
+      console.log(`  retired stale service: ${s.nameFi ?? s.name} (has appointments)`);
+    } else {
+      await prisma.staffService.deleteMany({ where: { serviceId: s.id } });
+      await prisma.service.delete({ where: { id: s.id } });
+      console.log(`  removed stale service: ${s.nameFi ?? s.name}`);
+    }
+  }
+
+  const staleCategories = await prisma.serviceCategory.findMany({
+    where: { slug: { notIn: [...keptCategorySlugs] } },
+    include: { _count: { select: { services: true } } },
+  });
+  for (const c of staleCategories) {
+    if (c._count.services > 0) {
+      await prisma.serviceCategory.update({ where: { id: c.id }, data: { isActive: false } });
+      console.log(`  deactivated stale category: ${c.nameFi ?? c.name} (still has services)`);
+    } else {
+      await prisma.serviceCategory.delete({ where: { id: c.id } });
+      console.log(`  removed stale category: ${c.nameFi ?? c.name}`);
+    }
+  }
 
   // ── Demo customers + appointments (development only) ────────────────────────
   const allowDemo =

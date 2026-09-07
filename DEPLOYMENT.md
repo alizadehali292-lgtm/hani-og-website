@@ -1,8 +1,9 @@
 # Deployment
 
 The app is a single Next.js 16 deployable (frontend + API + server actions).
-Recommended host: **Vercel**. Database: a managed Postgres (Neon / Supabase) or
-Turso/libSQL. Email: Resend.
+**This project ships on Netlify (free) + Turso/libSQL (free) + GitHub Actions
+cron + Resend** — see "Chosen free deployment" in section 1. Sections 1's
+Option A/B and the Vercel notes are kept as background alternatives.
 
 ## 1. Database — move off dev SQLite
 
@@ -24,7 +25,13 @@ Local dev uses `DATABASE_URL="file:./dev.db"`. For production:
    rm -rf prisma/migrations
    npx prisma migrate dev --name init      # against the new Postgres dev DB
    ```
-4. **Defense-in-depth against double booking** — add a raw exclusion constraint
+4. **Case-insensitive admin search** — SQLite's `LIKE` is case-insensitive, Postgres's
+   is not. Add `mode: "insensitive"` to the `firstName` / `lastName` / `email` clauses
+   in `src/lib/admin/customer-search.ts` (`customerSearchOR`, one place — used by the
+   customers list, the appointments list and the manual-booking typeahead). `phone`
+   stays plain. `mode` is absent from the generated types while `provider = sqlite`,
+   so it cannot be pre-committed.
+5. **Defense-in-depth against double booking** — add a raw exclusion constraint
    in a follow-up migration (`npx prisma migrate dev --create-only`), editing the
    generated SQL:
    ```sql
@@ -38,16 +45,56 @@ Local dev uses `DATABASE_URL="file:./dev.db"`. For production:
      WHERE ("status" IN ('PENDING','CONFIRMED','COMPLETED'));
    ```
    The app already runs the creation transaction at `Serializable` isolation on
-   non-SQLite (`src/lib/booking/create.ts`), and catches unique/exclusion
+   Postgres (`src/lib/booking/create.ts` / `mutations.ts` detect a
+   `postgres://` / `postgresql://` URL), and catches unique/exclusion
    violations as `SLOT_TAKEN`.
-5. Deploy migrations in CI/release: `npx prisma migrate deploy`.
+6. Deploy migrations in CI/release: `npx prisma migrate deploy`.
 
 ### Option B — Turso / libSQL
 
 Keep `provider = "sqlite"`, set `DATABASE_URL="libsql://<db>.turso.io"` and
 `TURSO_AUTH_TOKEN`, and use `@libsql/client` + the Prisma libSQL adapter. Simpler
 op-wise; the exclusion-constraint trick is Postgres-only, so rely on the
-serialized-writer + in-transaction re-check (as in dev).
+serialized-writer + in-transaction re-check (as in dev). The booking code already
+treats a non-`postgres` URL (including `libsql://`) as SQLite and skips the
+Postgres-only `Serializable` option, so bookings work unchanged on this path.
+The case-insensitive-search step (Option A step 4) does **not** apply here —
+Turso's `LIKE` matches SQLite's case behaviour.
+
+### Chosen free deployment — Netlify + Turso/libSQL (this is what ships)
+
+Host: **Netlify free plan**, Next.js 16 via Netlify's zero-config Next runtime,
+deploy-on-git-push. DB: **Turso / libSQL** free tier (no card, no idle
+auto-pause, ToS permits commercial use). Cron: **GitHub Actions** scheduled
+workflow (`.github/workflows/cron-notifications.yml`), free on a public repo.
+Email: **Resend** (free tier, verified sending domain).
+
+The DB does **not** switch to Postgres — `provider` stays `"sqlite"`, the single
+committed migration applies verbatim to Turso, and `src/lib/admin/customer-search.ts`
+is **not** edited (Turso's `LIKE` matches SQLite's case behaviour). `src/lib/prisma.ts`
+carries a libSQL driver adapter that only activates for a `libsql://` / `http(s)://`
+/ `ws(s)://` URL, so `DATABASE_URL="file:./dev.db"` keeps `npm run dev` and the
+test suite working unchanged. `IS_SQLITE` stays true for a `libsql://` URL (the
+regex only matches `postgres://`), so the four booking transactions run without
+the Postgres-only `Serializable` option; the libSQL adapter supports interactive
+`$transaction`, so they work.
+
+Apply schema + first owner (Prisma Migrate cannot reach Turso over HTTP):
+
+```bash
+DATABASE_URL="libsql://<db>.turso.io" TURSO_AUTH_TOKEN="..." \
+  SEED_OWNER_EMAIL="owner@hanibeautyhair.fi" SEED_OWNER_PASSWORD="<12+ chars>" \
+  SEED_OWNER_NAME="Hani" npm run turso:bootstrap
+```
+
+Future schema changes: author locally with `npm run db:migrate` (SQLite), then
+apply the new `migration.sql` to Turso the same way (`executeMultiple`).
+`prisma migrate deploy` is never run against Turso; `_prisma_migrations` is not
+tracked there, so `prisma migrate status` against prod is meaningless.
+
+Cron: set repo **secret** `CRON_SECRET` and repo **variable** `SITE_URL` (via
+`gh`), and set the **same** `CRON_SECRET` value in Netlify env — the route 401s
+without it.
 
 ## 2. Environment variables (set in the host)
 
@@ -55,7 +102,8 @@ serialized-writer + in-transaction re-check (as in dev).
 | --- | --- |
 | `DATABASE_URL` | production DB connection string |
 | `AUTH_SECRET` | `openssl rand -base64 33` — required |
-| `AUTH_TRUST_HOST` | `true` on Vercel |
+| `AUTH_TRUST_HOST` | `true` (required off-Vercel, e.g. Netlify) |
+| `TURSO_AUTH_TOKEN` | Turso database auth token (paired with a `libsql://` `DATABASE_URL`) |
 | `NEXT_PUBLIC_SITE_URL` | canonical https URL (emails, sitemap, JSON-LD) |
 | `RESEND_API_KEY` | from resend.com; without it emails write to `./.mail/` |
 | `EMAIL_FROM` | verified sender, e.g. `Hani Beauty & Hair <noreply@hanibeautyhair.fi>` |
@@ -84,24 +132,23 @@ Change the password immediately via `/admin/reset`.
 
 ## 4. Scheduled jobs
 
-`vercel.json` is committed and schedules the queue drain every 15 minutes:
+The queue drain runs every 15 minutes from **GitHub Actions**
+(`.github/workflows/cron-notifications.yml`): it `POST`s
+`$SITE_URL/api/cron/notifications` with `Authorization: Bearer $CRON_SECRET`.
+Free on a public repo (unlimited Actions minutes); a private repo would exceed
+the 2,000-minute free allowance, so use an external free pinger (cron-job.org)
+in that case. The endpoint also accepts `?key=$CRON_SECRET` as a fallback and is
+idempotent (drains rows with `scheduledFor <= now`), so a few minutes of
+scheduler jitter is harmless.
 
-```json
-{ "crons": [{ "path": "/api/cron/notifications", "schedule": "*/15 * * * *" }] }
-```
+Wiring: `gh secret set CRON_SECRET` + `gh variable set SITE_URL`, and set the
+**same** `CRON_SECRET` in Netlify env — **the endpoint 401s until you set it**.
 
-Vercel sends `Authorization: Bearer $CRON_SECRET` automatically once `CRON_SECRET`
-is set as an environment variable — **the endpoint 401s until you set it**. Any
-other scheduler can pass the same header, or `?key=$CRON_SECRET` as a fallback.
+**This job is what actually sends the 24 h / 2 h reminders and the owner
+"new booking" alerts.** Booking, reschedule and cancel write/update the scheduled
+`Notification` rows; nothing goes out until this drain runs.
 
-**This job is what actually sends the 24 h / 2 h reminders.** Booking, reschedule
-and cancel write/update the scheduled `Notification` rows; nothing goes out until
-this drain runs. Without the cron, customers get their confirmation email but never
-a reminder.
-
-Note: Vercel's Hobby plan allows only one cron invocation per day — reminders need
-a plan that permits the 15-minute schedule, or an external scheduler
-(cron-job.org, GitHub Actions, Upstash QStash) hitting the same URL.
+(There is no `vercel.json` — this project deploys to Netlify, not Vercel.)
 
 ## 5. Post-deploy checklist
 
@@ -117,6 +164,8 @@ a plan that permits the 15-minute schedule, or an external scheduler
 
 ## Known cleanups
 
-- `package.json#prisma` seed config warns on Prisma 7 — migrate to
-  `prisma.config.ts` when upgrading Prisma.
 - Rate limiter is in-process; for multi-instance use Upstash (`UPSTASH_*`).
+- `service.bufferBeforeMinutes` is editable in `/admin/palvelut` but the booking
+  engine only honours `bufferAfterMinutes`. Leave prep gaps at 0, or wire
+  `bufferBeforeMinutes` into `getDayAvailability` + the `create.ts`/`mutations.ts`
+  conflict windows together.

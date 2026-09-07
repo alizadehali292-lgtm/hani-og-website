@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_TZ, formatInTz } from "@/lib/time";
 
 export const WEEKDAYS_FI = [
   { n: 1, label: "Maanantai" },
@@ -10,7 +11,7 @@ export const WEEKDAYS_FI = [
   { n: 0, label: "Sunnuntai" },
 ];
 
-export async function loadAvailabilityAdmin() {
+export async function loadAvailabilityAdmin(tz: string = DEFAULT_TZ) {
   const [businessHours, breaks, specialHours, timeOff, staff] = await Promise.all([
     prisma.businessHours.findMany(),
     prisma.scheduleBreak.findMany({ orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] }),
@@ -42,7 +43,9 @@ export async function loadAvailabilityAdmin() {
     })),
     specialHours: specialHours.map((s) => ({
       id: s.id,
-      date: s.date.toISOString().slice(0, 10),
+      // `date` is stored as the salon-local midnight instant; read it back in the
+      // same zone or it renders one calendar day early (Helsinki is never UTC+0).
+      date: formatInTz(s.date, "yyyy-MM-dd", tz),
       isClosed: s.isClosed,
       openTime: s.openTime,
       closeTime: s.closeTime,

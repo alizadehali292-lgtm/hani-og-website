@@ -14,8 +14,12 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
+      // /admin/login and the logged-out password-reset flow (/admin/reset,
+      // /admin/reset/<token>) must stay reachable without a session.
       const isAdminArea =
-        pathname.startsWith("/admin") && pathname !== "/admin/login";
+        pathname.startsWith("/admin") &&
+        !pathname.startsWith("/admin/login") &&
+        !pathname.startsWith("/admin/reset");
       if (isAdminArea) return Boolean(auth?.user);
       return true;
     },

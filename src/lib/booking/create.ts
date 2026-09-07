@@ -10,7 +10,11 @@ import { makeManageToken } from "./manage-token";
 import { reminderRows } from "./reminders";
 import { dispatchForAppointment, autoDispatchEnabled } from "@/lib/email/dispatch";
 
-const IS_SQLITE = (process.env.DATABASE_URL ?? "").startsWith("file:");
+// The `isolationLevel: "Serializable"` transaction option is only meaningful on
+// Postgres. Detect Postgres positively: every other URL — local `file:`, and the
+// `libsql://` Turso path (DEPLOYMENT.md Option B keeps `provider = "sqlite"`) —
+// must skip it, or Prisma rejects the transaction and every booking throws.
+const IS_SQLITE = !/^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL ?? "");
 
 /** Transient write-contention signatures worth retrying (not logic errors). */
 function isTransientDbError(e: unknown): boolean {

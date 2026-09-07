@@ -1,0 +1,15 @@
+# Netlify build config for the Hani Beauty & Hair booking app (a single Next.js
+# 16 deployable). SSR, /api routes, server actions and proxy.ts (middleware) are
+# handled by Netlify's zero-config Next runtime plugin, pinned below.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Pin the Next runtime plugin. If Netlify's auto-detected version already
+# supports Next 16 this block is a harmless no-op.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

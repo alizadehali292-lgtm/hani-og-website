@@ -65,7 +65,16 @@ export async function sendEmail(input: SendInput): Promise<SendResult> {
     }
   }
 
-  // File fallback
+  // File fallback — dev only. In production a missing RESEND_API_KEY is a
+  // misconfiguration, not a reason to silently spool tokenised links to disk
+  // while the Notification row gets marked SENT.
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      `[email] RESEND_API_KEY is not set — refusing to send "${input.subject}" to ${input.to}.`,
+    );
+    return { ok: false, mode: "file", error: "email transport not configured" };
+  }
+
   try {
     await mkdir(MAIL_DIR, { recursive: true });
     const name = `${new Date().toISOString().replace(/[:.]/g, "-")}__${slug(input.to)}__${slug(

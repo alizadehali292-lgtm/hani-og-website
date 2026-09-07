@@ -26,8 +26,9 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default async function AvailabilityPage() {
-  const [data, settings] = await Promise.all([loadAvailabilityAdmin(), getSettings()]);
+  const settings = await getSettings();
   const tz = settings.timezone;
+  const data = await loadAvailabilityAdmin(tz);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">

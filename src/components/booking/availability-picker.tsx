@@ -42,6 +42,8 @@ export function AvailabilityPicker({
 }) {
   const today = salonToday();
   const endpoint = admin ? "/api/admin/availability" : "/api/availability";
+  // Bumped by the "try again" buttons to re-run the fetch effects.
+  const [reload, setReload] = useState(0);
   const [date, setDate] = useState<string | null>(selected?.date ?? null);
   const [view, setView] = useState(() => {
     const { y, m } = parseDateStr(selected?.date ?? today);
@@ -58,6 +60,7 @@ export function AvailabilityPicker({
   const [rangeRes, setRangeRes] = useState<{
     key: string;
     map: Map<string, boolean>;
+    error?: boolean;
   } | null>(null);
   useEffect(() => {
     let live = true;
@@ -72,17 +75,22 @@ export function AvailabilityPicker({
             map: new Map(r.dates.map((d) => [d.dateStr, d.hasSlots])),
           }),
       )
-      .catch(() => live && setRangeRes({ key: rangeKey, map: new Map() }));
+      // Distinguish "loaded, nothing free" from "the request failed" — an empty
+      // map would otherwise render every day disabled with no explanation.
+      .catch(() => live && setRangeRes({ key: rangeKey, map: new Map(), error: true }));
     return () => {
       live = false;
     };
-  }, [rangeKey, endpoint, serviceId, staffQ, today]);
-  const openMap = rangeRes?.key === rangeKey ? rangeRes.map : null;
+  }, [rangeKey, endpoint, serviceId, staffQ, today, reload]);
+  const rangeErrored = rangeRes?.key === rangeKey && rangeRes.error === true;
+  const openMap =
+    rangeRes?.key === rangeKey && !rangeRes.error ? rangeRes.map : null;
 
   const dayKey = `${endpoint}|${serviceId}|${staffId ?? ""}|${date ?? ""}`;
   const [dayRes, setDayRes] = useState<{
     key: string;
     data: ApiDayAvailability;
+    error?: boolean;
   } | null>(null);
   useEffect(() => {
     if (!date) return;
@@ -96,14 +104,33 @@ export function AvailabilityPicker({
           live &&
           setDayRes({
             key: dayKey,
+            error: true,
             data: { mode: "day", dateStr: date, isOpen: false, reason: null, times: [] },
           }),
       );
     return () => {
       live = false;
     };
-  }, [dayKey, endpoint, serviceId, staffQ, date]);
-  const day = dayRes?.key === dayKey ? dayRes.data : null;
+  }, [dayKey, endpoint, serviceId, staffQ, date, reload]);
+  const dayErrored = dayRes?.key === dayKey && dayRes.error === true;
+  const day = dayRes?.key === dayKey && !dayRes.error ? dayRes.data : null;
+
+  if (rangeErrored) {
+    return (
+      <div className="rounded-md border border-line bg-card px-4 py-8 text-center">
+        <p className="text-sm text-ink-soft">
+          Vapaiden aikojen lataaminen epäonnistui.
+        </p>
+        <button
+          type="button"
+          onClick={() => setReload((n) => n + 1)}
+          className="mt-3 rounded-sm border border-line-strong px-4 py-2 text-sm font-medium hover:border-ink"
+        >
+          Yritä uudelleen
+        </button>
+      </div>
+    );
+  }
 
   if (!openMap) {
     return (
@@ -190,7 +217,18 @@ export function AvailabilityPicker({
       {date && (
         <div className="mt-4">
           <p className="mb-2 text-xs uppercase tracking-wide text-ink-faint">{longDateFi(date)}</p>
-          {!day ? (
+          {dayErrored ? (
+            <div className="py-3">
+              <p className="text-sm text-ink-soft">Aikojen lataaminen epäonnistui.</p>
+              <button
+                type="button"
+                onClick={() => setReload((n) => n + 1)}
+                className="mt-2 rounded-sm border border-line-strong px-3 py-1.5 text-xs font-medium hover:border-ink"
+              >
+                Yritä uudelleen
+              </button>
+            </div>
+          ) : !day ? (
             <div className="flex justify-center py-6">
               <Loader2 className="h-4 w-4 animate-spin text-ink-faint" />
             </div>

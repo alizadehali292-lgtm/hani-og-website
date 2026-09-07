@@ -8,7 +8,9 @@ import { isSlotBookable } from "./availability";
 import { reminderRows, deletePendingReminders } from "./reminders";
 import { dispatchForAppointment, autoDispatchEnabled } from "@/lib/email/dispatch";
 
-const IS_SQLITE = (process.env.DATABASE_URL ?? "").startsWith("file:");
+// Serializable is Postgres-only here; local `file:` and the `libsql://` Turso
+// path (provider stays "sqlite") must skip it. See the note in ./create.ts.
+const IS_SQLITE = !/^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL ?? "");
 const TX_OPTS = IS_SQLITE
   ? { timeout: 10_000 }
   : ({ isolationLevel: "Serializable", timeout: 10_000 } as const);
@@ -146,6 +148,16 @@ export async function rescheduleBooking(args: {
   });
   if (!link && staffId !== appt.staffId) throw new BookingError("STAFF_CANNOT_PERFORM_SERVICE");
 
+  // A customer must not move a booking onto a stylist the salon has taken
+  // off the schedule (isBookable=false, kept isActive=true for history).
+  // Admins may do this deliberately.
+  if (!isAdmin) {
+    const staff = await prisma.staff.findUnique({ where: { id: staffId } });
+    if (!staff || !staff.isActive || !staff.isBookable) {
+      throw new BookingError("STAFF_UNAVAILABLE");
+    }
+  }
+
   const service = appt.service;
   const duration = link?.durationMinutesOverride ?? service.durationMinutes;
   const priceCents = link?.priceCentsOverride ?? service.priceCents;
@@ -183,6 +195,18 @@ export async function rescheduleBooking(args: {
       select: { id: true },
     });
     if (conflict) throw new BookingError("SLOT_TAKEN");
+
+    // Re-check time-off inside the transaction too (createBooking does the same)
+    // — an admin adding salon-wide time-off concurrently must not be raced.
+    const off = await tx.timeOff.findFirst({
+      where: {
+        OR: [{ staffId }, { staffId: null }],
+        startAt: { lt: newBufferEndUtc },
+        endAt: { gt: newStartUtc },
+      },
+      select: { id: true },
+    });
+    if (off) throw new BookingError("SLOT_INVALID");
 
     const updated = await tx.appointment.update({
       where: { id: appt.id },
