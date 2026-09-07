@@ -1,0 +1,274 @@
+// Hani Beauty & Hair — booking platform schema
+// DB: SQLite for local/dev (zero-setup, serialized writes make slot races trivial to defend).
+// Production path: swap `provider` to "postgresql" + point DATABASE_URL at a managed PG
+// (Neon/Supabase) OR use Turso/libSQL. See DEPLOYMENT.md. Schema is kept portable:
+// no native enums (unsupported on SQLite), no Json columns — string unions validated by Zod.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Admin / staff logins. role: OWNER | ADMIN | STAFF
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  name             String
+  role             String    @default("STAFF")
+  isActive         Boolean   @default(true)
+  staff            Staff?    @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  staffId          String?   @unique
+  resetTokenHash   String?
+  resetTokenExpiry DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  auditLogs        AuditLog[]
+
+  @@index([role])
+}
+
+/// A bookable team member. The booking engine is multi-staff from day one.
+model Staff {
+  id            String           @id @default(cuid())
+  name          String
+  slug          String           @unique
+  title         String?
+  bio           String?
+  imageUrl      String?
+  color         String           @default("#8a7d6b") // calendar chip colour
+  displayOrder  Int              @default(0)
+  isActive      Boolean          @default(true)
+  isBookable    Boolean          @default(true)
+  user          User?
+  services      StaffService[]
+  schedules     StaffSchedule[]
+  breaks        ScheduleBreak[]
+  timeOff       TimeOff[]
+  appointments  Appointment[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([isActive, isBookable])
+}
+
+model ServiceCategory {
+  id           String    @id @default(cuid())
+  name         String
+  nameFi       String?
+  slug         String    @unique
+  description  String?
+  displayOrder Int       @default(0)
+  isActive     Boolean   @default(true)
+  services     Service[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+/// priceType: FIXED | FROM | CONSULTATION (CONSULTATION => price shown as "by agreement")
+model Service {
+  id                  String           @id @default(cuid())
+  category            ServiceCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId          String
+  name                String
+  nameFi              String?
+  slug                String           @unique
+  description         String?
+  durationMinutes     Int
+  bufferBeforeMinutes Int              @default(0)
+  bufferAfterMinutes  Int              @default(0)
+  priceCents          Int              @default(0)
+  priceType           String           @default("FIXED")
+  isActive            Boolean          @default(true)
+  isBookableOnline    Boolean          @default(true)
+  displayOrder        Int              @default(0)
+  staff               StaffService[]
+  appointments        Appointment[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive, isBookableOnline])
+}
+
+/// Which staff can perform which service, with optional per-staff overrides.
+model StaffService {
+  staff                   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId                 String
+  service                 Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId               String
+  priceCentsOverride      Int?
+  durationMinutesOverride Int?
+
+  @@id([staffId, serviceId])
+  @@index([serviceId])
+}
+
+/// Salon-level default opening hours. One row per weekday (0 = Sunday ... 6 = Saturday).
+model BusinessHours {
+  id        String  @id @default(cuid())
+  dayOfWeek Int     @unique
+  openTime  String  @default("10:00") // "HH:mm" local (Europe/Helsinki)
+  closeTime String  @default("18:00")
+  isClosed  Boolean @default(false)
+}
+
+/// Per-staff weekly working hours. Overrides BusinessHours for that staff member.
+model StaffSchedule {
+  id        String  @id @default(cuid())
+  staff     Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId   String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isWorking Boolean @default(true)
+
+  @@unique([staffId, dayOfWeek])
+}
+
+/// Recurring daily breaks (e.g. lunch). staffId null => whole salon.
+model ScheduleBreak {
+  id        String  @id @default(cuid())
+  staff     Staff?  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId   String?
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  label     String  @default("Break")
+
+  @@index([staffId, dayOfWeek])
+}
+
+/// Holidays / special opening hours for a specific calendar date. Salon-wide.
+model SpecialHours {
+  id        String   @id @default(cuid())
+  date      DateTime @unique // date-only (midnight Europe/Helsinki stored as UTC)
+  openTime  String?
+  closeTime String?
+  isClosed  Boolean  @default(true)
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+/// Ad-hoc blocked ranges: vacation, sick, blocked slot, one-off closure.
+/// staffId null => applies to the whole salon. type: VACATION | SICK | BLOCK | HOLIDAY
+model TimeOff {
+  id          String   @id @default(cuid())
+  staff       Staff?   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId     String?
+  startAt     DateTime // UTC
+  endAt       DateTime // UTC
+  type        String   @default("BLOCK")
+  reason      String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([staffId, startAt, endAt])
+  @@index([startAt, endAt])
+}
+
+model Customer {
+  id               String        @id @default(cuid())
+  firstName        String
+  lastName         String
+  email            String
+  phone            String
+  notes            String? // internal, owner-only
+  marketingConsent Boolean       @default(false)
+  isBlocked        Boolean       @default(false)
+  appointments     Appointment[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([email])
+  @@index([phone])
+  @@index([lastName, firstName])
+}
+
+/// status: PENDING | CONFIRMED | COMPLETED | CANCELLED | NO_SHOW
+/// source: ONLINE | ADMIN | PHONE | WALK_IN
+model Appointment {
+  id                 String   @id @default(cuid())
+  publicId           String   @unique @default(cuid()) // used in URLs
+  manageTokenHash    String   @unique // customer self-service (cancel/reschedule) link
+  customer           Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customerId         String
+  service            Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  serviceId          String
+  staff              Staff    @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  staffId            String
+  startAt            DateTime // UTC — customer-facing time is the salon slot start
+  endAt              DateTime // UTC — includes service duration (buffers tracked separately)
+  bufferEndAt        DateTime // UTC — endAt + bufferAfter, used for conflict checks
+  durationMinutes    Int
+  priceCents         Int
+  status             String   @default("CONFIRMED")
+  source             String   @default("ONLINE")
+  customerNote       String?
+  internalNote       String?
+  cancellationReason String?
+  cancelledAt        DateTime?
+  cancelledBy        String? // "customer" | "salon" | userId
+  confirmedAt        DateTime?
+  completedAt        DateTime?
+  rescheduledFrom    Appointment?  @relation("Reschedule", fields: [rescheduledFromId], references: [id], onDelete: SetNull)
+  rescheduledFromId  String?       @unique
+  rescheduledTo      Appointment?  @relation("Reschedule")
+  notifications      Notification[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([staffId, startAt])
+  @@index([startAt])
+  @@index([status])
+  @@index([customerId])
+}
+
+/// type: BOOKING_CONFIRMATION | BOOKING_CANCELLED | BOOKING_RESCHEDULED
+///       | OWNER_NEW_BOOKING | OWNER_CANCELLED | OWNER_RESCHEDULED
+///       | REMINDER_24H | REMINDER_2H | REVIEW_REQUEST
+/// channel: EMAIL   status: PENDING | SENT | FAILED | SKIPPED
+model Notification {
+  id            String       @id @default(cuid())
+  type          String
+  channel       String       @default("EMAIL")
+  recipient     String
+  subject       String
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  status        String       @default("PENDING")
+  error         String?
+  scheduledFor  DateTime?
+  sentAt        DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@index([status, scheduledFor])
+  @@index([appointmentId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  meta      String? // JSON string
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+/// Key-value business settings. value is a JSON string.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

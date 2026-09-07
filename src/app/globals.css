@@ -1,0 +1,193 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Hani Beauty & Hair — design system
+   Warm Nordic minimalism. Editorial serif display, humanist grotesque body.
+   One accent (muted terracotta). Generous whitespace. Calm motion.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Surfaces */
+  --paper: #f7f4ef;
+  --paper-2: #efeae1;
+  --paper-3: #e7e0d4;
+  --card: #fffdf9;
+
+  /* Ink */
+  --ink: #211d18;
+  --ink-soft: #5b5346;
+  --ink-faint: #8a8071;
+
+  /* Lines */
+  --line: #ded5c6;
+  --line-strong: #cabfab;
+
+  /* Accent — muted terracotta ("Helsinki autumn") */
+  --clay: #a9694e;
+  --clay-deep: #8a5540;
+  --clay-tint: #f0e4dc;
+
+  /* Support */
+  --sand: #e8decf;
+  --success: #4b6b52;
+  --success-tint: #e4ede4;
+  --warning: #9a6a2f;
+  --warning-tint: #f4e9d8;
+  --danger: #9b4636;
+  --danger-tint: #f3e0da;
+  --info: #3f5a6b;
+  --info-tint: #e0e8ec;
+
+  --focus: #a9694e;
+
+  --radius: 2px;
+  --radius-lg: 4px;
+  --shadow-card: 0 1px 2px rgba(33, 29, 24, 0.04), 0 8px 24px -12px rgba(33, 29, 24, 0.12);
+  --shadow-pop: 0 12px 40px -12px rgba(33, 29, 24, 0.28);
+
+  --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-clay: var(--clay);
+  --color-clay-deep: var(--clay-deep);
+  --color-clay-tint: var(--clay-tint);
+  --color-sand: var(--sand);
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-info: var(--info);
+  --color-info-tint: var(--info-tint);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+
+  --radius-xs: var(--radius);
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius-lg);
+  --radius-lg: var(--radius-lg);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+/* ── Admin surface: subtle brand DNA, usability first ───────────────────────── */
+[data-surface="admin"] {
+  --paper: #f4f2ee;
+  --paper-2: #eceae4;
+  --card: #ffffff;
+  --line: #e2ded5;
+  --line-strong: #d0cabb;
+  --radius: 3px;
+  --radius-lg: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-surface="admin"] {
+    --paper: #1a1815;
+    --paper-2: #211e1a;
+    --paper-3: #2a2621;
+    --card: #221f1b;
+    --ink: #f2ede4;
+    --ink-soft: #c3bcaa;
+    --ink-faint: #8f8676;
+    --line: #35302a;
+    --line-strong: #423c34;
+    --clay-tint: #33231c;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--clay);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  .editorial-measure {
+    max-width: 62ch;
+  }
+  .fade-in {
+    animation: fade-in 0.5s ease both;
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "file:./dev.db"
+      AUTH_SECRET: "ci-secret-ci-secret-ci-secret-xxxxxx"
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      # `next typegen` (inside the typecheck script) generates the ambient
+      # PageProps/LayoutProps route types into .next/types. Without it tsc fails
+      # on a clean checkout, which is why CI never passed — a local .next/ from a
+      # previous dev run was masking it.
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
