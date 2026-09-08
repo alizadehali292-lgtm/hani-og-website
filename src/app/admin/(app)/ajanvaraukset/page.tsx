@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getT } from "@/lib/i18n/admin-server";
 import { prisma } from "@/lib/prisma";
 import { listAppointments, STATUS_FILTER_OPTIONS } from "@/lib/admin/appointments";
 import { formatInTz, todayLocalDateStr, addLocalDays } from "@/lib/time";
@@ -56,10 +57,11 @@ export default async function AppointmentsPage({
     { label: "Mennyt viikko", from: addLocalDays(today, -7), to: today },
   ];
 
+  const t = await getT();
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="font-display text-2xl">Ajanvaraukset</h1>
+        <h1 className="font-display text-2xl">{t("page.appointments")}</h1>
         <Link
           href="/admin/ajanvaraukset/uusi"
           className="rounded-sm bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-clay-deep"

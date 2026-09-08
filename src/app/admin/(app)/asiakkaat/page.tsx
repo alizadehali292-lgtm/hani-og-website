@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getT } from "@/lib/i18n/admin-server";
 import { listCustomers } from "@/lib/admin/customers";
 import { getSettings } from "@/lib/settings";
 import { formatInTz } from "@/lib/time";
@@ -14,9 +15,10 @@ export default async function CustomersPage({
   const page = Number((Array.isArray(sp.page) ? sp.page[0] : sp.page) || 1);
   const [data, settings] = await Promise.all([listCustomers({ q, page }), getSettings()]);
 
+  const t = await getT();
   return (
     <div className="mx-auto max-w-4xl space-y-5">
-      <h1 className="font-display text-2xl">Asiakkaat</h1>
+      <h1 className="font-display text-2xl">{t("page.customers")}</h1>
 
       <form method="get" className="flex gap-2">
         <input

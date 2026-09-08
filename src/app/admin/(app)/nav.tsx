@@ -14,24 +14,32 @@ import {
   Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { DictKey } from "@/lib/i18n/admin-dict";
+import { useT } from "./lang-context";
 
-export const NAV_ITEMS = [
-  { href: "/admin", label: "Kojelauta", icon: LayoutDashboard, exact: true },
-  { href: "/admin/kalenteri", label: "Kalenteri", icon: CalendarDays },
-  { href: "/admin/ajanvaraukset", label: "Ajanvaraukset", icon: ListChecks },
-  { href: "/admin/asiakkaat", label: "Asiakkaat", icon: Users },
-  { href: "/admin/palvelut", label: "Palvelut", icon: Scissors },
-  { href: "/admin/henkilokunta", label: "Henkilökunta", icon: UserCog },
-  { href: "/admin/aukiolot", label: "Aukiolot", icon: Clock },
-  { href: "/admin/ilmoitukset", label: "Ilmoitukset", icon: Mail },
-  { href: "/admin/asetukset", label: "Asetukset", icon: Settings },
+export const NAV_ITEMS: {
+  href: string;
+  labelKey: DictKey;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+}[] = [
+  { href: "/admin", labelKey: "nav.dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/kalenteri", labelKey: "nav.calendar", icon: CalendarDays },
+  { href: "/admin/ajanvaraukset", labelKey: "nav.appointments", icon: ListChecks },
+  { href: "/admin/asiakkaat", labelKey: "nav.customers", icon: Users },
+  { href: "/admin/palvelut", labelKey: "nav.services", icon: Scissors },
+  { href: "/admin/henkilokunta", labelKey: "nav.staff", icon: UserCog },
+  { href: "/admin/aukiolot", labelKey: "nav.hours", icon: Clock },
+  { href: "/admin/ilmoitukset", labelKey: "nav.notifications", icon: Mail },
+  { href: "/admin/asetukset", labelKey: "nav.settings", icon: Settings },
 ];
 
 export function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const t = useT();
   return (
-    <nav className="flex flex-col gap-0.5" aria-label="Hallinnan valikko">
-      {NAV_ITEMS.map(({ href, label, icon: Icon, exact }) => {
+    <nav className="flex flex-col gap-0.5" aria-label={t("shell.navLabel")}>
+      {NAV_ITEMS.map(({ href, labelKey, icon: Icon, exact }) => {
         const active = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
@@ -47,7 +55,7 @@ export function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
             )}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden />
-            {label}
+            {t(labelKey)}
           </Link>
         );
       })}

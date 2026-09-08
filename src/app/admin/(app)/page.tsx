@@ -5,6 +5,7 @@ import { formatInTz } from "@/lib/time";
 import { formatPrice } from "@/lib/utils";
 import { STATUS_LABELS, type BookingStatus } from "@/lib/types";
 import { Card, StatusPill, EmptyState, Alert } from "@/components/ui/misc";
+import { getT } from "@/lib/i18n/admin-server";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +24,13 @@ function ApptRow({
   tz,
   currency,
   locale,
+  minLabel,
 }: {
   a: Awaited<ReturnType<typeof getDashboardData>>["todaysAppointments"][number];
   tz: string;
   currency: string;
   locale: string;
+  minLabel: string;
 }) {
   return (
     <Link
@@ -45,7 +48,7 @@ function ApptRow({
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium text-ink">{a.customerName}</span>
         <span className="block truncate text-xs text-ink-soft">
-          {a.serviceName} · {a.staffName} · {a.durationMinutes} min
+          {a.serviceName} · {a.staffName} · {a.durationMinutes} {minLabel}
         </span>
       </span>
       <span className="hidden shrink-0 text-xs text-ink-faint sm:block">
@@ -60,15 +63,20 @@ export default async function AdminDashboardPage({
   searchParams,
 }: PageProps<"/admin">) {
   const sp = await searchParams;
-  const [data, settings] = await Promise.all([getDashboardData(), getSettings()]);
+  const [data, settings, t] = await Promise.all([
+    getDashboardData(),
+    getSettings(),
+    getT(),
+  ]);
   const { stats, todaysAppointments, upcomingAppointments, timezone } = data;
   const { currency, locale } = settings;
+  const minLabel = t("dash.min");
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Kojelauta</h1>
+          <h1 className="font-display text-2xl">{t("page.dashboard")}</h1>
           <p className="text-sm text-ink-soft">
             {formatInTz(new Date(), "EEEE d.M.yyyy", timezone)}
           </p>
@@ -77,54 +85,54 @@ export default async function AdminDashboardPage({
           href="/admin/ajanvaraukset/uusi"
           className="rounded-sm bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-clay-deep"
         >
-          + Uusi ajanvaraus
+          {t("dash.newAppointment")}
         </Link>
       </div>
 
-      {sp?.denied && <Alert tone="warning">Sinulla ei ole oikeutta kyseiseen näkymään.</Alert>}
+      {sp?.denied && <Alert tone="warning">{t("dash.denied")}</Alert>}
       {settings.openingHoursAreProvisional && (
         <Alert tone="info">
-          Aukioloajat ovat vielä alustavat. Vahvista oikeat ajat kohdassa{" "}
+          {t("dash.hoursProvisionalBefore")}
           <Link href="/admin/aukiolot" className="underline">
-            Aukiolot
+            {t("nav.hours")}
           </Link>
-          .
+          {t("dash.hoursProvisionalAfter")}
         </Alert>
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Stat label="Tänään" value={stats.todayCount} sub="ajanvarausta" />
-        <Stat label="Odottaa" value={stats.pendingCount} sub="vahvistusta" />
-        <Stat label="Uudet tänään" value={stats.createdToday} />
-        <Stat label="Peruutukset" value={stats.cancelledToday} sub="tänään" />
-        <Stat label="7 vrk" value={stats.weekCount} sub="ajanvarausta" />
+        <Stat label={t("dash.statToday")} value={stats.todayCount} sub={t("dash.statTodaySub")} />
+        <Stat label={t("dash.statPending")} value={stats.pendingCount} sub={t("dash.statPendingSub")} />
+        <Stat label={t("dash.statCreatedToday")} value={stats.createdToday} />
+        <Stat label={t("dash.statCancelled")} value={stats.cancelledToday} sub={t("dash.statCancelledSub")} />
+        <Stat label={t("dash.statWeek")} value={stats.weekCount} sub={t("dash.statWeekSub")} />
         <Stat
-          label="Tänään yht."
+          label={t("dash.statRevenueToday")}
           value={formatPrice(stats.revenueTodayCents, { currency, locale })}
         />
       </div>
 
       <section>
-        <h2 className="mb-2 font-display text-lg">Tämän päivän aikataulu</h2>
+        <h2 className="mb-2 font-display text-lg">{t("dash.todaySchedule")}</h2>
         <Card className="p-0">
           {todaysAppointments.length === 0 ? (
             <div className="p-4">
-              <EmptyState title="Ei ajanvarauksia tänään" />
+              <EmptyState title={t("dash.noToday")} />
             </div>
           ) : (
             todaysAppointments.map((a) => (
-              <ApptRow key={a.id} a={a} tz={timezone} currency={currency} locale={locale} />
+              <ApptRow key={a.id} a={a} tz={timezone} currency={currency} locale={locale} minLabel={minLabel} />
             ))
           )}
         </Card>
       </section>
 
       <section>
-        <h2 className="mb-2 font-display text-lg">Tulevat (7 vrk)</h2>
+        <h2 className="mb-2 font-display text-lg">{t("dash.upcoming")}</h2>
         <Card className="p-0">
           {upcomingAppointments.length === 0 ? (
             <div className="p-4">
-              <EmptyState title="Ei tulevia ajanvarauksia" />
+              <EmptyState title={t("dash.noUpcoming")} />
             </div>
           ) : (
             upcomingAppointments.map((a) => (
@@ -132,7 +140,7 @@ export default async function AdminDashboardPage({
                 <div className="px-3 pt-2 text-[11px] uppercase tracking-wide text-ink-faint">
                   {formatInTz(a.startAt, "EEE d.M.", timezone)}
                 </div>
-                <ApptRow a={a} tz={timezone} currency={currency} locale={locale} />
+                <ApptRow a={a} tz={timezone} currency={currency} locale={locale} minLabel={minLabel} />
               </div>
             ))
           )}

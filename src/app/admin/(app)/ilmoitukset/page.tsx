@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getT } from "@/lib/i18n/admin-server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-guards";
 import { getSettings } from "@/lib/settings";
@@ -60,9 +61,10 @@ export default async function NotificationsPage({
   ];
   const active = status ?? "ALL";
 
+  const t = await getT();
   return (
     <div>
-      <h1 className="font-display text-2xl">Ilmoitukset</h1>
+      <h1 className="font-display text-2xl">{t("page.notifications")}</h1>
       <p className="mt-1 text-sm text-ink-faint">
         Järjestelmän lähettämät sähköpostit. Näet täältä, menikö vahvistus perille.
       </p>

@@ -1,4 +1,5 @@
 import { loadAvailabilityAdmin, WEEKDAYS_FI } from "@/lib/admin/availability-admin";
+import { getT } from "@/lib/i18n/admin-server";
 import { getSettings } from "@/lib/settings";
 import { formatInTz } from "@/lib/time";
 import { Card } from "@/components/ui/misc";
@@ -30,10 +31,11 @@ export default async function AvailabilityPage() {
   const tz = settings.timezone;
   const data = await loadAvailabilityAdmin(tz);
 
+  const t = await getT();
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <h1 className="font-display text-2xl">Aukiolot &amp; saatavuus</h1>
+        <h1 className="font-display text-2xl">{t("page.hours")}</h1>
         <p className="text-sm text-ink-soft">
           Määrittää, milloin asiakkaat voivat varata aikoja. Varausmoottori laskee vapaat
           ajat näiden sääntöjen, palveluiden keston ja olemassa olevien varausten perusteella.

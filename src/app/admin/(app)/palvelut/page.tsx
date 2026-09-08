@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getT } from "@/lib/i18n/admin-server";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { formatPrice, formatDuration } from "@/lib/utils";
@@ -18,10 +19,11 @@ export default async function ServicesAdminPage() {
     getSettings(),
   ]);
 
+  const t = await getT();
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl">Palvelut</h1>
+        <h1 className="font-display text-2xl">{t("page.services")}</h1>
         <Link
           href="/admin/palvelut/uusi"
           className="rounded-sm bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-clay-deep"

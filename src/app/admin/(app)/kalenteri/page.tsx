@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getT } from "@/lib/i18n/admin-server";
 import { loadCalendar, type CalView } from "@/lib/admin/calendar";
 import { addLocalDays } from "@/lib/time";
 import { longDateFi, monthLabelFi, shortDateFi } from "@/lib/dates-client";
@@ -36,10 +37,11 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/k
         ? `${shortDateFi(cal.from)} – ${shortDateFi(cal.to)}`
         : monthLabelFi(Number(cal.date.slice(0, 4)), Number(cal.date.slice(5, 7)));
 
+  const t = await getT();
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl">Kalenteri</h1>
+        <h1 className="font-display text-2xl">{t("page.calendar")}</h1>
         <Link
           href="/admin/ajanvaraukset/uusi"
           className="rounded-sm bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-clay-deep"
