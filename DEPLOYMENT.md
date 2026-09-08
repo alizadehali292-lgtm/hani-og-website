@@ -5,6 +5,9 @@ The app is a single Next.js 16 deployable (frontend + API + server actions).
 cron + Resend** — see "Chosen free deployment" in section 1. Sections 1's
 Option A/B and the Vercel notes are kept as background alternatives.
 
+**Live:** https://hani-og-website.netlify.app (first deployed 2026-09-08).
+Netlify auto-builds on every push to `main`.
+
 ## 1. Database — move off dev SQLite
 
 Local dev uses `DATABASE_URL="file:./dev.db"`. For production:
