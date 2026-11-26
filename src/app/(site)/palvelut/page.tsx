@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Palvelut & hinnasto",
+  alternates: { canonical: "/palvelut" },
   description:
     "Hani Beauty & Hair -kampaamon palvelut ja hinnasto: leikkaukset, värjäykset, raidat ja balayage, permanentit, kampaukset ja meikit, ripsi- ja kulmapalvelut.",
 };

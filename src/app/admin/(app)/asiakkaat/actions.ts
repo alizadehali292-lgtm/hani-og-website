@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
+import { clientIpFromHeaders } from "@/lib/rate-limit";
 import { requireApiRole } from "@/lib/auth-guards";
 import { redirect } from "next/navigation";
 import { eraseCustomer } from "@/lib/admin/gdpr";
@@ -32,7 +33,7 @@ export async function updateCustomerAction(
   if (!parsed.success) return { error: "Virheelliset tiedot." };
 
   const h = await headers();
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ip = clientIpFromHeaders(h);
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -87,7 +88,7 @@ export async function eraseCustomerAction(
   }
 
   const h = await headers();
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ip = clientIpFromHeaders(h);
 
   const result = await eraseCustomer(id);
   if (!result.ok) return { error: result.reason };

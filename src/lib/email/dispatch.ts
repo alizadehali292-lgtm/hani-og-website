@@ -85,13 +85,19 @@ async function buildData(
   };
 }
 
-async function processOne(n: {
-  id: string;
-  type: string;
-  recipient: string;
-  subject: string;
-  appointmentId: string | null;
-}) {
+/** Types that make sense after the appointment has started (sent afterwards by design). */
+const AFTER_APPOINTMENT_TYPES: NotificationType[] = ["REVIEW_REQUEST"];
+
+async function processOne(
+  n: {
+    id: string;
+    type: string;
+    recipient: string;
+    subject: string;
+    appointmentId: string | null;
+  },
+  now: Date,
+) {
   try {
     if (!n.appointmentId) {
       await prisma.notification.update({
@@ -109,6 +115,17 @@ async function processOne(n: {
       return;
     }
     const type = n.type as NotificationType;
+
+    // A queue that sat undrained (e.g. the cron was paused) must not email
+    // "your appointment is tomorrow" — or a stale owner alert — for a booking
+    // whose start time has already passed.
+    if (!AFTER_APPOINTMENT_TYPES.includes(type) && appt.startAt.getTime() <= now.getTime()) {
+      await prisma.notification.update({
+        where: { id: n.id },
+        data: { status: "SKIPPED", error: "appointment already started" },
+      });
+      return;
+    }
 
     // A reminder queued days ago must not go out if the booking was since
     // cancelled, completed or marked a no-show. Belt-and-braces: cancel and
@@ -155,8 +172,11 @@ async function processOne(n: {
  * op). Rows scheduled for the future — the 24h/2h reminders — are left for the
  * cron drain, otherwise every booking would immediately email its own reminders.
  */
-export async function dispatchForAppointment(appointmentId: string): Promise<void> {
-  const now = new Date();
+export async function dispatchForAppointment(
+  appointmentId: string,
+  opts: { now?: Date } = {},
+): Promise<void> {
+  const now = opts.now ?? new Date();
   const pending = await prisma.notification.findMany({
     where: {
       appointmentId,
@@ -165,7 +185,7 @@ export async function dispatchForAppointment(appointmentId: string): Promise<voi
     },
     orderBy: { createdAt: "asc" },
   });
-  for (const n of pending) await processOne(n);
+  for (const n of pending) await processOne(n, now);
 }
 
 /** Drain the PENDING queue (for a scheduled job). Returns how many were processed. */
@@ -179,6 +199,6 @@ export async function dispatchPending(opts: { limit?: number; now?: Date } = {})
     orderBy: { createdAt: "asc" },
     take: opts.limit ?? 50,
   });
-  for (const n of pending) await processOne(n);
+  for (const n of pending) await processOne(n, now);
   return pending.length;
 }

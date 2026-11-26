@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { clientIpFromHeaders } from "@/lib/rate-limit";
 import { requireApiRole } from "@/lib/auth-guards";
 import { createBooking } from "@/lib/booking/create";
 import { isBookingError } from "@/lib/booking/errors";
@@ -73,7 +74,7 @@ export async function createManualBookingAction(
   }
 
   const h = await headers();
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ip = clientIpFromHeaders(h);
 
   try {
     const settings = await getSettings();

@@ -4,6 +4,7 @@ import { getSettings } from "@/lib/settings";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Tietosuojaseloste",
+  alternates: { canonical: "/tietosuoja" },
   description: "Miten Hani Beauty & Hair käsittelee henkilötietoja ajanvarauksen yhteydessä.",
 };
 

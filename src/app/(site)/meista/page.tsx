@@ -6,6 +6,7 @@ import { StaffAvatar } from "@/components/site/staff-avatar";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Meistä",
+  alternates: { canonical: "/meista" },
   description:
     "Hani Beauty & Hair on rauhallinen kampaamo ja kauneushoitola Helsingin Töölössä. Tutustu tiimiin ja arvoihimme.",
 };

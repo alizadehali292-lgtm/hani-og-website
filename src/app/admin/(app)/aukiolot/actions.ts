@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
+import { clientIpFromHeaders } from "@/lib/rate-limit";
 import { requireApiRole } from "@/lib/auth-guards";
 import { getSettings, updateSettings } from "@/lib/settings";
 import { localDateTimeToUtc, startOfLocalDayUtc } from "@/lib/time";
@@ -20,7 +21,7 @@ function bump() {
 
 async function ip() {
   const h = await headers();
-  return h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  return clientIpFromHeaders(h);
 }
 
 export async function saveBusinessHoursAction(formData: FormData) {

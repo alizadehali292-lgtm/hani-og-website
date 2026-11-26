@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Varaa aika",
+  alternates: { canonical: "/ajanvaraus" },
   description:
     "Varaa aika Hani Beauty & Hair -kampaamoon Helsingin Töölössä. Valitse palvelu, tekijä ja sinulle sopiva aika muutamassa vaiheessa.",
   robots: { index: true, follow: true },

@@ -53,12 +53,21 @@ export function rateLimitMany(
   return last;
 }
 
+/**
+ * Best-effort client IP. Netlify sets `x-nf-client-connection-ip` itself, so it
+ * cannot be forged by the caller; the first `x-forwarded-for` entry can be, so
+ * it is only a fallback for other hosts and local dev.
+ */
+export function clientIpFromHeaders(h: Headers): string | null {
+  const nf = h.get("x-nf-client-connection-ip")?.trim();
+  if (nf) return nf;
+  const real = h.get("x-real-ip")?.trim();
+  if (real) return real;
+  const xff = h.get("x-forwarded-for")?.split(",")[0]?.trim();
+  if (xff) return xff;
+  return h.get("cf-connecting-ip")?.trim() || null;
+}
+
 export function clientIp(req: Request): string {
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0]!.trim();
-  return (
-    req.headers.get("x-real-ip") ??
-    req.headers.get("cf-connecting-ip") ??
-    "0.0.0.0"
-  );
+  return clientIpFromHeaders(req.headers) ?? "0.0.0.0";
 }

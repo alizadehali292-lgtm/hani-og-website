@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { requireApiRole } from "@/lib/auth-guards";
+import { clientIpFromHeaders } from "@/lib/rate-limit";
 import { isBookingError } from "@/lib/booking/errors";
 import {
   cancelBooking,
@@ -19,8 +20,7 @@ import { BOOKING_STATUSES } from "@/lib/types";
 export type ActionState = { ok?: boolean; error?: string };
 
 async function clientIp() {
-  const h = await headers();
-  return h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? null;
+  return clientIpFromHeaders(await headers());
 }
 
 function revalidate(id?: string) {

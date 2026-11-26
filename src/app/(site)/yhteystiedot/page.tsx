@@ -6,6 +6,7 @@ import { getPublicHours } from "@/lib/hours";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Yhteystiedot",
+  alternates: { canonical: "/yhteystiedot" },
   description:
     "Hani Beauty & Hair — Mechelininkatu 51, 00250 Helsinki. Aukioloajat, puhelin ja ajanvaraus.",
 };
