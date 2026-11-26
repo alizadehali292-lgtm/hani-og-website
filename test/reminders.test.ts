@@ -75,6 +75,20 @@ describe("appointment reminders", () => {
     expect(rs.map((r) => r.type)).toEqual(["REMINDER_2H"]);
   });
 
+  it("skips overdue reminders once the appointment has started (stale queue)", async () => {
+    const res = await book();
+    const appt = await prisma.appointment.findUniqueOrThrow({
+      where: { id: res.appointmentId },
+    });
+
+    // The drain was paused and only runs again after the appointment began.
+    await dispatchPending({ now: new Date(appt.startAt.getTime() + 1 * HOUR) });
+    const rs = await remindersFor(res.appointmentId);
+    expect(rs).toHaveLength(2);
+    expect(rs.every((r) => r.status === "SKIPPED")).toBe(true);
+    expect(sentEmails.filter((e) => e.subject.includes("uistutus"))).toHaveLength(0);
+  });
+
   it("does not send reminders until they are due, then sends them", async () => {
     const res = await book();
     const appt = await prisma.appointment.findUniqueOrThrow({

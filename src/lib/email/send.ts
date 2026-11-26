@@ -7,7 +7,7 @@ const MAIL_DIR = path.join(process.cwd(), ".mail");
 
 export type SendResult = {
   ok: boolean;
-  mode: "resend" | "file" | "disabled";
+  mode: "resend" | "smtp" | "file" | "disabled";
   id?: string;
   error?: string;
 };
@@ -18,6 +18,35 @@ export type SendInput = {
   html: string;
   text?: string;
   replyTo?: string;
+};
+
+/**
+ * SMTP settings (EMAIL_TRANSPORT=smtp). Defaults target Gmail: a free account
+ * with 2-step verification and an *app password* in SMTP_PASS can send roughly
+ * 500 messages a day, which is far above a single salon's booking volume.
+ * Read at call time so a redeploy with new env vars needs no code change.
+ */
+export function smtpConfigFromEnv() {
+  const user = process.env.SMTP_USER?.trim() ?? "";
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, "") ?? ""; // app passwords are shown with spaces
+  const port = Number(process.env.SMTP_PORT ?? 465);
+  return {
+    host: process.env.SMTP_HOST?.trim() || "smtp.gmail.com",
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    // Gmail rewrites any other From address to the account itself, so default
+    // to a display name on the authenticated address.
+    from: process.env.EMAIL_FROM?.trim() || (user ? `Hani Beauty & Hair <${user}>` : ""),
+  };
+}
+
+/** Indirection so tests can swap the real SMTP connection for an in-memory one. */
+export const smtpFactory = {
+  create: async (opts: Omit<ReturnType<typeof smtpConfigFromEnv>, "from">) => {
+    const nodemailer = (await import("nodemailer")).default;
+    return nodemailer.createTransport(opts);
+  },
 };
 
 /** Test inspection buffer, populated when EMAIL_TRANSPORT=capture. */
@@ -32,6 +61,7 @@ function slug(s: string) {
 
 /**
  * Send one transactional email.
+ * - EMAIL_TRANSPORT=smtp: real delivery over SMTP (Gmail by default, free).
  * - With RESEND_API_KEY: real delivery via Resend.
  * - Without it (dev): the rendered message is written to ./.mail/*.html so the
  *   whole notification flow is testable end-to-end with no credentials.
@@ -44,6 +74,28 @@ export async function sendEmail(input: SendInput): Promise<SendResult> {
   if (process.env.EMAIL_TRANSPORT === "capture") {
     sentEmails.push(input);
     return { ok: true, mode: "file", id: "captured" };
+  }
+
+  if (process.env.EMAIL_TRANSPORT === "smtp") {
+    const { from, ...opts } = smtpConfigFromEnv();
+    if (!opts.auth.user || !opts.auth.pass) {
+      console.error(`[email] EMAIL_TRANSPORT=smtp but SMTP_USER/SMTP_PASS are not set.`);
+      return { ok: false, mode: "smtp", error: "smtp credentials not configured" };
+    }
+    try {
+      const transport = await smtpFactory.create(opts);
+      const info = await transport.sendMail({
+        from,
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+        text: input.text ?? htmlToText(input.html),
+        ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+      });
+      return { ok: true, mode: "smtp", id: info.messageId };
+    } catch (e) {
+      return { ok: false, mode: "smtp", error: e instanceof Error ? e.message : String(e) };
+    }
   }
 
   if (RESEND_KEY) {
@@ -70,7 +122,7 @@ export async function sendEmail(input: SendInput): Promise<SendResult> {
   // while the Notification row gets marked SENT.
   if (process.env.NODE_ENV === "production") {
     console.error(
-      `[email] RESEND_API_KEY is not set — refusing to send "${input.subject}" to ${input.to}.`,
+      `[email] No transport configured (set EMAIL_TRANSPORT=smtp + SMTP_*, or RESEND_API_KEY) — refusing to send "${input.subject}" to ${input.to}.`,
     );
     return { ok: false, mode: "file", error: "email transport not configured" };
   }

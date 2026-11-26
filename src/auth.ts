@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { authConfig } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
+import { clientIpFromHeaders } from "@/lib/rate-limit";
+import { isLoginThrottled, recordFailedLogin } from "@/lib/login-throttle";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -15,16 +17,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
-      async authorize(raw) {
+      async authorize(raw, request) {
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
         const email = parsed.data.email.trim().toLowerCase();
+
+        // Checked here (not only in the login form's action) because Auth.js
+        // also exposes the credentials callback endpoint directly.
+        const ip = request ? clientIpFromHeaders(request.headers) : null;
+        if (await isLoginThrottled({ ip, email })) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
         // Constant-ish work whether or not the user exists.
         const hash = user?.passwordHash ?? "$2a$12$0000000000000000000000000000000000000000000000000000";
         const ok = await bcrypt.compare(parsed.data.password, hash);
-        if (!user || !ok || !user.isActive) return null;
+        if (!user || !ok || !user.isActive) {
+          await recordFailedLogin({ ip, email }).catch(() => {});
+          return null;
+        }
 
         void prisma.user
           .update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })

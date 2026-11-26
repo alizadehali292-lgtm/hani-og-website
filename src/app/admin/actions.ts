@@ -2,7 +2,10 @@
 
 import { AuthError } from "next-auth";
 import { z } from "zod";
+import { headers } from "next/headers";
 import { signIn, signOut } from "@/auth";
+import { clientIpFromHeaders } from "@/lib/rate-limit";
+import { isLoginThrottled } from "@/lib/login-throttle";
 
 const schema = z.object({
   email: z.string().email("Anna kelvollinen sähköpostiosoite."),
@@ -21,6 +24,13 @@ export async function loginAction(
   });
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+
+  // Same check authorize() makes, repeated here only to show a clear message
+  // instead of the generic "wrong email or password".
+  const ip = clientIpFromHeaders(await headers());
+  if (await isLoginThrottled({ ip, email: parsed.data.email })) {
+    return { error: "Liian monta kirjautumisyritystä. Yritä uudelleen myöhemmin." };
   }
 
   try {

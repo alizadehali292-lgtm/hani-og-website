@@ -4,6 +4,7 @@ import { getSettings } from "@/lib/settings";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Peruutusehdot",
+  alternates: { canonical: "/peruutusehdot" },
   description: "Hani Beauty & Hair -kampaamon ajanvarauksen peruutus- ja siirtoehdot.",
 };
 

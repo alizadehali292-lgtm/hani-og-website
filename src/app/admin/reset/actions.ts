@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { generateToken, hashToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email/send";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, clientIpFromHeaders } from "@/lib/rate-limit";
 import { headers } from "next/headers";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -19,7 +19,7 @@ export async function requestResetAction(
   formData: FormData,
 ): Promise<ResetRequestState> {
   const h = await headers();
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
+  const ip = clientIpFromHeaders(h) ?? "0.0.0.0";
   if (!rateLimit(`reset:${ip}`, 5, 15 * 60_000).ok) {
     return { error: "Liian monta yritystä. Yritä myöhemmin uudelleen." };
   }

@@ -36,7 +36,7 @@ describe("notification dispatch", () => {
     });
 
     // auto-dispatch is off under NODE_ENV=test — drive it explicitly
-    await dispatchForAppointment(res.appointmentId);
+    await dispatchForAppointment(res.appointmentId, { now: NOW });
 
     const notifs = await prisma.notification.findMany({ where: { appointmentId: res.appointmentId } });
     // The immediate pair is sent; the scheduled reminders stay PENDING for cron.
@@ -72,9 +72,9 @@ describe("notification dispatch", () => {
       customer,
       now: NOW,
     });
-    await dispatchForAppointment(res.appointmentId);
+    await dispatchForAppointment(res.appointmentId, { now: NOW });
     clearSentEmails();
-    const processed = await dispatchPending();
+    const processed = await dispatchPending({ now: NOW });
     expect(processed).toBe(0);
     expect(sentEmails).toHaveLength(0);
   });
@@ -88,7 +88,7 @@ describe("notification dispatch", () => {
       customer,
       now: NOW,
     });
-    await dispatchForAppointment(res.appointmentId);
+    await dispatchForAppointment(res.appointmentId, { now: NOW });
     clearSentEmails();
 
     await rescheduleBooking({
@@ -97,7 +97,7 @@ describe("notification dispatch", () => {
       actor: { type: "customer" },
       now: NOW,
     });
-    await dispatchForAppointment(res.appointmentId);
+    await dispatchForAppointment(res.appointmentId, { now: NOW });
 
     const cust = sentEmails.find((e) => e.to === "aino@example.com")!;
     expect(cust.subject).toContain("siirretty");
@@ -114,11 +114,11 @@ describe("notification dispatch", () => {
       customer,
       now: NOW,
     });
-    await dispatchForAppointment(res.appointmentId);
+    await dispatchForAppointment(res.appointmentId, { now: NOW });
     clearSentEmails();
 
     await cancelBooking({ appointmentId: res.appointmentId, actor: { type: "customer" }, now: NOW });
-    await dispatchForAppointment(res.appointmentId);
+    await dispatchForAppointment(res.appointmentId, { now: NOW });
 
     const cust = sentEmails.find((e) => e.to === "aino@example.com")!;
     expect(cust.subject).toContain("peruttu");
