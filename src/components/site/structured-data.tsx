@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { INSTAGRAM_URL } from "@/content/gallery";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const DAY_SCHEMA = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -25,6 +26,7 @@ export async function StructuredData() {
       addressLocality: settings.city,
       addressCountry: "FI",
     },
+    sameAs: [INSTAGRAM_URL],
     areaServed: "Helsinki",
     priceRange: "€€",
     currenciesAccepted: settings.currency,

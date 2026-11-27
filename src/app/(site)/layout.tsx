@@ -3,9 +3,12 @@ import { Suspense } from "react";
 import { StructuredData } from "@/components/site/structured-data";
 import { MobileNav } from "@/components/site/mobile-nav";
 import { getSettings } from "@/lib/settings";
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL, hasGallery } from "@/content/gallery";
 
 const NAV = [
   { href: "/palvelut", label: "Palvelut" },
+  // The gallery link appears once there are photos in src/content/gallery.ts.
+  ...(hasGallery() ? [{ href: "/galleria", label: "Galleria" }] : []),
   { href: "/meista", label: "Meistä" },
   { href: "/yhteystiedot", label: "Yhteystiedot" },
 ];
@@ -85,6 +88,16 @@ export default async function SiteLayout({ children }: LayoutProps<"/">) {
                 className="hover:text-ink"
               >
                 {settings.phone}
+              </a>
+            </p>
+            <p className="mt-2">
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-ink"
+              >
+                Instagram {INSTAGRAM_HANDLE}
               </a>
             </p>
           </div>

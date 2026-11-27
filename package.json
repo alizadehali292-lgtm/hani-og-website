@@ -18,7 +18,8 @@
     "owner:create": "tsx scripts/create-owner.ts",
     "turso:bootstrap": "node scripts/turso-bootstrap.mjs",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "gallery:import": "node scripts/gallery-import.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
@@ -51,6 +52,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "prisma": "^6.19.3",
+    "sharp": "0.35.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5",
